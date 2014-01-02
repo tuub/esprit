@@ -1,4 +1,2 @@
-esprit
-======
-
-ElasticSearch Data Access Layer
+esprit: ElasticSearch - Put Records In There!
+=============================================
