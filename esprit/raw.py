@@ -80,10 +80,33 @@ def search(connection, type=None, query=None):
     resp = requests.post(url, data=json.dumps(query))
     return resp
 
+def get(connection, type, id):
+    url = elasticsearch_url(connection, type, endpoint=id)
+    resp = requests.get(url)
+    return resp
+
+def mget(connection, type, ids):
+    if ids is None:
+        raise ESWireException("mget requires one or more ids")
+    # docs = [{"_id" : i} for i in ids]
+    docs = {"ids" : ids}
+    url = elasticsearch_url(connection, type, endpoint="_mget")
+    resp = requests.post(url, data=json.dumps(docs))
+    return resp
+
 def unpack_result(requests_response):
     j = requests_response.json()
     objects = [i.get("_source", {}) for i in j.get('hits', {}).get('hits', [])]
     return objects
+
+def unpack_mget(requests_response):
+    j = requests_response.json()
+    objects = [i.get("_source") for i in j.get("docs")]
+    return objects
+
+def unpack_get(requests_response):
+    j = requests_response.json()
+    return j.get("_source")
 
 def put_mapping(connection, type=None, mapping=None, make_index=True):
     if mapping is None:
@@ -126,6 +149,14 @@ def store(connection, type, record, id=None, params=None):
 def delete(connection, type=None, id=None):
     url = elasticsearch_url(connection, type, endpoint=id)
     resp = requests.delete(url)
+    return resp
+
+def delete_by_query(connection, type, query):
+    url = elasticsearch_url(connection, type, endpoint="_query")
+    if "query" in query:
+        # we have to unpack the query, as the endpoint covers that
+        query = query["query"]
+    resp = requests.delete(url, data=json.dumps(query))
     return resp
 
 class ESWireException(Exception):
