@@ -54,10 +54,12 @@ class DomainObject(DAO):
     def json(self):
         return json.dumps(self.data)
     
-    def save(self, conn=None):
-        if 'created_date' not in self.data:
-            self.data['created_date'] = util.now()
-        self.data['last_updated'] = util.now()
+    def save(self, conn=None, created=True, updated=True):
+        if created:
+            if 'created_date' not in self.data:
+                self.data['created_date'] = util.now()
+        if updated:
+            self.data['last_updated'] = util.now()
         
         if conn is None:
             conn = self.__conn__
