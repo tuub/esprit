@@ -6,6 +6,7 @@ class Query(object):
     _term = {"query": {"term": { } } } # term : {"<key>" : "<value>"}
     
     _terms_filter = { "query" : { "filtered" : { "filter" : { "terms" : { } } } } } # terms : {"<key>" : ["<value>"]}
+    _term_filter = { "query" : { "filtered" : { "filter" : { "term" : { } } } } } # terms : {"<key>" : "<value>"}
     
     @classmethod
     def match_all(cls):
@@ -24,7 +25,15 @@ class Query(object):
         return q
     
     @classmethod
+    def term_filter(cls, key, value):
+        q = deepcopy(cls._term_filter)
+        q["query"]["filtered"]["filter"]["term"][key] = value
+        return q
+    
+    @classmethod
     def terms_filter(cls, key, values):
+        if not isinstance(values, list):
+            values = [values]
         q = deepcopy(cls._terms_filter)
         q["query"]["filtered"]["filter"]["terms"][key] = values
         return q

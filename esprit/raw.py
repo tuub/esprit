@@ -159,6 +159,11 @@ def delete_by_query(connection, type, query):
     resp = requests.delete(url, data=json.dumps(query))
     return resp
 
+def refresh(connection):
+    url = elasticsearch_url(connection, endpoint="_refresh")
+    resp = requests.post(url)
+    return resp
+
 class ESWireException(Exception):
     def __init__(self, value):
         self.value = value
