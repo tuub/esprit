@@ -12,14 +12,11 @@ EXACT = {
     }
 }
 
-{
-        	"geo" : {
-            	"match" : "canonical_location",
-                "mapping" : {
-                	"type" : "geo_point"
-                }
-            }
-        }
+def properties(field_mappings):
+    return {"properties" : field_mappings}
+
+def type_mapping(field, type):
+    return {field : {"type" : type}}
 
 def make_mapping(type):
     # FIXME: obviously this is not all there is to it
@@ -36,8 +33,11 @@ def dynamic_type_template(name, match, mapping):
 def dynamic_templates(templates):
     return {"dynamic_templates" : templates}
 
-def for_type(typename, mapping):
-    return { typename : mapping }
+def for_type(typename, *mapping):
+    full_mapping = {}
+    for m in mapping:
+        full_mapping.update(m)
+    return { typename : full_mapping }
 
 def parent(childtype, parenttype):
     return {

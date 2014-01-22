@@ -85,23 +85,28 @@ def get(connection, type, id):
     resp = requests.get(url)
     return resp
 
-def mget(connection, type, ids):
+def mget(connection, type, ids, fields=None):
     if ids is None:
         raise ESWireException("mget requires one or more ids")
-    # docs = [{"_id" : i} for i in ids]
-    docs = {"ids" : ids}
+    docs = {"docs" : []}
+    if fields is None:
+        docs = {"ids" : ids}
+    else:
+        fields = [] if fields is None else fields if isinstance(fields, list) else [fields]
+        for id in ids:
+            docs["docs"].append({"_id" : id, "fields" : fields})
     url = elasticsearch_url(connection, type, endpoint="_mget")
     resp = requests.post(url, data=json.dumps(docs))
     return resp
 
 def unpack_result(requests_response):
     j = requests_response.json()
-    objects = [i.get("_source", {}) for i in j.get('hits', {}).get('hits', [])]
+    objects = [i.get("_source") if "_source" in i else i.get("fields") for i in j.get('hits', {}).get('hits', [])]
     return objects
 
 def unpack_mget(requests_response):
     j = requests_response.json()
-    objects = [i.get("_source") for i in j.get("docs")]
+    objects = [i.get("_source") if "_source" in i else i.get("fields") for i in j.get("docs")]
     return objects
 
 def unpack_get(requests_response):

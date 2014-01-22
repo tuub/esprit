@@ -54,6 +54,28 @@ class DomainObject(DAO):
     def json(self):
         return json.dumps(self.data)
     
+    @property
+    def raw(self):
+        return self.data
+    
+    @classmethod
+    def pull(cls, id_, conn=None):
+        '''Retrieve object by id.'''
+        if conn is None:
+            conn = cls.__conn__
+        
+        if id_ is None:
+            return None
+        try:
+            resp = raw.get(conn, cls.__type__, id_)
+            if resp.status_code == 404:
+                return None
+            else:
+                j = raw.unpack_get(resp)
+                return cls(j)
+        except:
+            return None
+    
     def save(self, conn=None, created=True, updated=True):
         if created:
             if 'created_date' not in self.data:
