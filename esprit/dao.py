@@ -87,5 +87,8 @@ class DomainObject(DAO):
             conn = self.__conn__
         raw.store(conn, self.__type__, self.data, self.id)
         
-    
+    def delete(self, conn=None):
+        if conn is None:
+            conn = self.__conn__
+        raw.delete(conn, self.__type__, self.id)
     
