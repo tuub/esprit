@@ -1,4 +1,4 @@
-import uuid
+import uuid, json
 from esprit import raw, util
 
 class StoreException(Exception):
@@ -49,6 +49,10 @@ class DomainObject(DAO):
     @property
     def id(self):
         return self.data.get('id', None)
+        
+    @id.setter
+    def id(self, val):
+        self.data["id"] = val
     
     @property
     def json(self):
@@ -76,7 +80,82 @@ class DomainObject(DAO):
         except:
             return None
     
-    def save(self, conn=None, created=True, updated=True):
+    @classmethod
+    def query(cls, q='', terms=None, facets=None, conn=None, **kwargs):
+        '''Perform a query on backend.
+
+        :param q: maps to query_string parameter if string, or query dict if dict.
+        :param terms: dictionary of terms to filter on. values should be lists. 
+        :param facets: dict of facets to return from the query.
+        :param kwargs: any keyword args as per
+            http://www.elasticsearch.org/guide/reference/api/search/uri-request.html
+        '''
+        if conn is None:
+            conn = cls.__conn__
+        
+        if isinstance(q,dict):
+            query = q
+            if 'bool' not in query['query']:
+                boolean = {'bool':{'must': [] }}
+                boolean['bool']['must'].append( query['query'] )
+                query['query'] = boolean
+            if 'must' not in query['query']['bool']:
+                query['query']['bool']['must'] = []
+        elif q:
+            query = {
+                'query': {
+                    'bool': {
+                        'must': [
+                            {'query_string': { 'query': q }}
+                        ]
+                    }
+                }
+            }
+        else:
+            query = {
+                'query': {
+                    'bool': {
+                        'must': [
+                            {'match_all': {}}
+                        ]
+                    }
+                }
+            }
+
+        if facets:
+            if 'facets' not in query:
+                query['facets'] = {}
+            for k, v in facets.items():
+                query['facets'][k] = {"terms":v}
+
+        if terms:
+            boolean = {'must': [] }
+            for term in terms:
+                if not isinstance(terms[term],list): terms[term] = [terms[term]]
+                for val in terms[term]:
+                    obj = {'term': {}}
+                    obj['term'][ term ] = val
+                    boolean['must'].append(obj)
+            if q and not isinstance(q,dict):
+                boolean['must'].append( {'query_string': { 'query': q } } )
+            elif q and 'query' in q:
+                boolean['must'].append( query['query'] )
+            query['query'] = {'bool': boolean}
+
+        for k,v in kwargs.items():
+            if k == '_from':
+                query['from'] = v
+            else:
+                query[k] = v
+        
+        r = raw.search(conn, cls.__type__, query)
+        # r = requests.post(cls.target() + recid + endpoint, data=json.dumps(query))
+        return r.json()
+    
+    def save(self, conn=None, makeid=True, created=True, updated=True):
+        if makeid:
+            if "id" not in self.data:
+                self.id = self.makeid()
         if created:
             if 'created_date' not in self.data:
                 self.data['created_date'] = util.now()

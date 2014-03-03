@@ -77,7 +77,9 @@ def search(connection, type=None, query=None):
     if not isinstance(query, dict):
         query = Query.query_string(query)
     
-    resp = requests.post(url, data=json.dumps(query))
+    headers = {"content-type" : "application/json"}
+    
+    resp = requests.post(url, data=json.dumps(query), headers=headers)
     return resp
 
 def get(connection, type, id):
@@ -132,6 +134,11 @@ def has_mapping(connection, type):
     resp = requests.get(url)
     return resp.status_code == 200
 
+def get_mapping(connection, type):
+    url = elasticsearch_url(connection, type, endpoint="_mapping")
+    resp = requests.get(url)
+    return resp
+
 def index_exists(connection):
     iurl = elasticsearch_url(connection, endpoint="_mapping")
     resp = requests.get(iurl)
@@ -167,6 +174,15 @@ def delete_by_query(connection, type, query):
 def refresh(connection):
     url = elasticsearch_url(connection, endpoint="_refresh")
     resp = requests.post(url)
+    return resp
+
+def bulk(connection, type, records, idkey='id'):
+    data = ''
+    for r in records:
+        data += json.dumps( {'index':{'_id':r[idkey]}} ) + '\n'
+        data += json.dumps( r ) + '\n'
+    url = elasticsearch_url(connection, type, endpoint="_bulk")
+    resp = requests.post(url, data=data)
     return resp
 
 class ESWireException(Exception):
