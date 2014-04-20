@@ -43,8 +43,8 @@ class DomainObject(DAO):
     __type__ = None
     __conn__ = None
     
-    def __init__(self, raw):
-        self.data = raw
+    def __init__(self, raw=None):
+        self.data = raw if raw is not None else {}
     
     @property
     def id(self):
@@ -61,6 +61,12 @@ class DomainObject(DAO):
     @property
     def raw(self):
         return self.data
+    
+    @classmethod
+    def refresh(cls, conn=None):
+        if conn is None:
+            conn = cls.__conn__
+        raw.refresh(conn)
     
     @classmethod
     def pull(cls, id_, conn=None):

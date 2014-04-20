@@ -103,6 +103,9 @@ def mget(connection, type, ids, fields=None):
 
 def unpack_result(requests_response):
     j = requests_response.json()
+    return unpack_json_result(j)
+
+def unpack_json_result(j):
     objects = [i.get("_source") if "_source" in i else i.get("fields") for i in j.get('hits', {}).get('hits', [])]
     return objects
 
