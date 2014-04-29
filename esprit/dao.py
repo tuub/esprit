@@ -1,5 +1,6 @@
 import uuid, json
 from esprit import raw, util
+from copy import deepcopy
 
 class StoreException(Exception):
     def __init__(self, value):
@@ -176,4 +177,45 @@ class DomainObject(DAO):
         if conn is None:
             conn = self.__conn__
         raw.delete(conn, self.__type__, self.id)
+
+    @classmethod
+    def iterate(cls, q, page_size=1000, limit=None, wrap=True):
+        q["size"] = page_size
+        q["from"] = 0
+        if "sort" not in q: # to ensure complete coverage on a changing index, sort by id is our best bet
+            q["sort"] = [{"id" : {"order" : "asc"}}]
+        counter = 0
+        while True:
+            # apply the limit
+            if limit is not None and counter >= limit:
+                break
+
+            res = cls.query(q=q)
+            rs = [r.get("_source") if "_source" in r else r.get("fields") for r in res.get("hits", {}).get("hits", [])]
+            # print counter, len(rs), res.get("hits", {}).get("total"), len(res.get("hits", {}).get("hits", [])), json.dumps(q)
+            if len(rs) == 0:
+                break
+            for r in rs:
+                # apply the limit (again)
+                if limit is not None and counter >= limit:
+                    break
+                counter += 1
+                if wrap:
+                    yield cls(r)
+                else:
+                    yield r
+            q["from"] += page_size
+
+    @classmethod
+    def iterall(cls, page_size=1000, limit=None):
+        return cls.iterate(deepcopy(all_query), page_size, limit)
     
+########################################################################
+## Some useful ES queries
+########################################################################
+
+all_query = {
+    "query" : {
+        "match_all" : { }
+    }
+}
