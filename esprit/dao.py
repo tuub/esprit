@@ -88,7 +88,7 @@ class DomainObject(DAO):
             return None
     
     @classmethod
-    def query(cls, q='', terms=None, facets=None, conn=None, **kwargs):
+    def query(cls, q='', terms=None, should_terms=None, facets=None, conn=None, **kwargs):
         '''Perform a query on backend.
 
         :param q: maps to query_string parameter if string, or query dict if dict.
@@ -154,9 +154,13 @@ class DomainObject(DAO):
                 query['from'] = v
             else:
                 query[k] = v
-        
+
+        if should_terms is not None and len(should_terms) > 0:
+            for s in should_terms:
+                if not isinstance(should_terms[s],list): should_terms[s] = [should_terms[s]]
+                query["query"]["bool"]["must"].append({"terms" : {s : should_terms[s]}})
+
         r = raw.search(conn, cls.__type__, query)
-        # r = requests.post(cls.target() + recid + endpoint, data=json.dumps(query))
         return r.json()
     
     def save(self, conn=None, makeid=True, created=True, updated=True):
