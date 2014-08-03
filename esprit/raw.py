@@ -1,6 +1,6 @@
 # The Raw ElasticSearch functions, no frills, just wrappers around the HTTP calls
 
-import requests, json
+import requests, json, urllib
 from models import Query
 
 class Connection(object):
@@ -69,7 +69,7 @@ def make_connection(connection, host, port, index):
         return connection
     return Connection(host, index, port)
 
-def search(connection, type=None, query=None):
+def search(connection, type=None, query=None, method="POST"):
     url = elasticsearch_url(connection, type, "_search")
     
     if query is None:
@@ -77,9 +77,12 @@ def search(connection, type=None, query=None):
     if not isinstance(query, dict):
         query = Query.query_string(query)
     
-    headers = {"content-type" : "application/json"}
-    
-    resp = requests.post(url, data=json.dumps(query), headers=headers)
+    resp = None
+    if method == "POST":
+        headers = {"content-type" : "application/json"}
+        resp = requests.post(url, data=json.dumps(query), headers=headers)
+    elif method == "GET":
+        resp = requests.get(url + "?source=" + urllib.quote_plus(json.dumps(query)))
     return resp
 
 def get(connection, type, id):
