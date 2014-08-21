@@ -13,6 +13,9 @@ class Query(object):
     
     _fields_constraint = {"fields" : []}
     
+    _special_chars = ["+", "-", "&&", "||", "!", "(", ")", "{", "}", "[", "]", "^", '"', "~", "*", "?", ":", "/"]
+    _escape_char = "\\" # which is a special special character too!
+    
     @classmethod
     def match_all(cls):
         return deepcopy(cls._match_all)
@@ -61,5 +64,11 @@ class Query(object):
             out = text_string.translate(unicode_punctuation_map)
         return list(set([o.lower() for o in out.split(" ") if o != ""]))
     
+    @classmethod
+    def escape(cls, query_string):
+        qs = query_string.replace(cls._escape_char, cls._escape_char + cls._escape_char) # escape the escape char
+        for sc in cls._special_chars:
+            qs = qs.replace(sc, cls._escape_char + sc)
+        return qs
     
     
