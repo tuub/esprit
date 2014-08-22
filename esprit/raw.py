@@ -2,6 +2,7 @@
 
 import requests, json, urllib
 from models import Query
+from copy import deepcopy
 
 class Connection(object):
     def __init__(self, host, index, port=9200):
@@ -18,13 +19,15 @@ class Connection(object):
             self.port = self.host[self.host.rindex(":") + 1:]
             self.host = self.host[:self.host.rindex(":")]
 
-def elasticsearch_url(connection, type=None, endpoint=None, params=None):
+def elasticsearch_url(connection, type=None, endpoint=None, params=None, omit_index=False):
     index = connection.index
     host = connection.host
     port = connection.port
 
     # normalise the indexes input
-    if index is None:
+    if omit_index:
+        index = ""
+    elif index is None and not omit_index:
         index = "_all"
     if isinstance(index, list):
         index = ",".join(index)
@@ -69,8 +72,8 @@ def make_connection(connection, host, port, index):
         return connection
     return Connection(host, index, port)
 
-def search(connection, type=None, query=None, method="POST"):
-    url = elasticsearch_url(connection, type, "_search")
+def search(connection, type=None, query=None, method="POST", url_params=None):
+    url = elasticsearch_url(connection, type, "_search", url_params)
     
     if query is None:
         query = Query.match_all()
@@ -84,6 +87,23 @@ def search(connection, type=None, query=None, method="POST"):
     elif method == "GET":
         resp = requests.get(url + "?source=" + urllib.quote_plus(json.dumps(query)))
     return resp
+
+def initialise_scroll(connection, type=None, query=None, keepalive="1m"):
+    return search(connection, type, query, url_params={"scroll" : keepalive})
+
+def scroll_next(connection, scroll_id, keepalive="1m"):
+    url = elasticsearch_url(connection, endpoint="_search/scroll", params={"scroll_id" : scroll_id, "scroll" : keepalive}, omit_index=True)
+    resp = requests.get(url)
+    return resp
+
+def scroll_timedout(requests_response):
+    return requests_response.status_code == 500
+
+def unpack_scroll(requests_response):
+    j = requests_response.json()
+    objects = unpack_json_result(j)
+    sid = j.get("_scroll_id")
+    return objects, sid
 
 def get(connection, type, id):
     url = elasticsearch_url(connection, type, endpoint=id)
