@@ -17,10 +17,11 @@ def copy(source_conn, source_type, target_conn, target_type, limit=None, batch_s
         print "writing batch of", len(batch)
         resp = raw.bulk(target_conn, target_type, batch)
 
-def scroll(conn, type, q, page_size=1000, limit=None, keepalive="1m"):
-    q["size"] = page_size
-    if "sort" not in q: # to ensure complete coverage on a changing index, sort by id is our best bet
-        q["sort"] = [{"id" : {"order" : "asc"}}]
+def scroll(conn, type, q=None, page_size=1000, limit=None, keepalive="1m"):
+    if q:
+        q["size"] = page_size
+        if "sort" not in q: # to ensure complete coverage on a changing index, sort by id is our best bet
+            q["sort"] = [{"id" : {"order" : "asc"}}]
 
     resp = raw.initialise_scroll(conn, type, q, keepalive)
     results, scroll_id = raw.unpack_scroll(resp)
