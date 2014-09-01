@@ -18,15 +18,24 @@ def copy(source_conn, source_type, target_conn, target_type, limit=None, batch_s
         resp = raw.bulk(target_conn, target_type, batch)
 
 def scroll(conn, type, q=None, page_size=1000, limit=None, keepalive="1m"):
-    if q:
+    if q is None:
+        q = {"query" : {"match_all" : {}}}
+    if "size" not in q:
         q["size"] = page_size
-        if "sort" not in q: # to ensure complete coverage on a changing index, sort by id is our best bet
-            q["sort"] = [{"id" : {"order" : "asc"}}]
+    if "sort" not in q: # to ensure complete coverage on a changing index, sort by id is our best bet
+        q["sort"] = [{"id" : {"order" : "asc"}}]
 
     resp = raw.initialise_scroll(conn, type, q, keepalive)
     results, scroll_id = raw.unpack_scroll(resp)
 
     counter = 0
+    for r in results:
+        # apply the limit
+        if limit is not None and counter >= int(limit):
+            break
+        counter += 1
+        yield r
+
     while True:
         # apply the limit
         if limit is not None and counter >= int(limit):
