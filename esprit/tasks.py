@@ -1,4 +1,5 @@
 from esprit import raw, models
+import json, sys
 
 class ScrollException(Exception):
     pass
@@ -79,3 +80,27 @@ def iterate(conn, type, q, page_size=1000, limit=None, method="POST"):
             yield r
         q["from"] += page_size
 
+def dump(conn, type, q=None, page_size=1000, limit=None, method="POST", out=None, transform=None):
+    q = q if q is not None else {"query" : {"match_all" : {}}}
+    out = out if out is not None else sys.stdout
+    for record in iterate(conn, type, q, page_size=page_size, limit=limit, method=method):
+        if transform is not None:
+            record = transform(record)
+        out.write(json.dumps(record))
+
+class JSONListWriter(object):
+    def __init__(self, path):
+        self.f = open(path, "wb")
+        self.f.write("[")
+        self.first = True
+
+    def write(self, serialised_json_object):
+        if self.first:
+            self.first = False
+        else:
+            self.f.write(",")
+        self.f.write(serialised_json_object)
+
+    def close(self):
+        self.f.write("]")
+        self.f.close()
