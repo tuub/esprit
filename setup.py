@@ -5,7 +5,7 @@ setup(
     version = '0.0.2',
     packages = find_packages(),
     install_requires = [
-        "requests==1.1.0",
+        "requests",
     ],
     url = 'http://cottagelabs.com/',
     author = 'Cottage Labs',
