@@ -6,7 +6,7 @@ class ScrollException(Exception):
 
 def copy(source_conn, source_type, target_conn, target_type, limit=None, batch_size=1000, method="POST", q=None):
     if q is None:
-        q = models.Query.match_all()
+        q = models.QueryBuilder.match_all()
     batch = []
     for r in iterate(source_conn, source_type, q, page_size=batch_size, limit=limit, method=method):
         batch.append(r)

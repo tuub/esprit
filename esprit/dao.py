@@ -70,7 +70,7 @@ class DomainObject(DAO):
         raw.refresh(conn)
     
     @classmethod
-    def pull(cls, id_, conn=None):
+    def pull(cls, id_, conn=None, wrap=True):
         '''Retrieve object by id.'''
         if conn is None:
             conn = cls.__conn__
@@ -83,7 +83,10 @@ class DomainObject(DAO):
                 return None
             else:
                 j = raw.unpack_get(resp)
-                return cls(j)
+                if wrap:
+                    return cls(j)
+                else:
+                    return j
         except:
             return None
     

@@ -1,7 +1,7 @@
 # The Raw ElasticSearch functions, no frills, just wrappers around the HTTP calls
 
 import requests, json, urllib
-from models import Query
+from models import QueryBuilder
 from copy import deepcopy
 
 class Connection(object):
@@ -76,9 +76,9 @@ def search(connection, type=None, query=None, method="POST", url_params=None):
     url = elasticsearch_url(connection, type, "_search", url_params)
     
     if query is None:
-        query = Query.match_all()
+        query = QueryBuilder.match_all()
     if not isinstance(query, dict):
-        query = Query.query_string(query)
+        query = QueryBuilder.query_string(query)
     
     resp = None
     if method == "POST":
