@@ -165,7 +165,13 @@ class DomainObject(DAO):
 
         r = raw.search(conn, cls.__type__, query)
         return r.json()
-    
+
+    @classmethod
+    def object_query(cls, q='', terms=None, should_terms=None, facets=None, conn=None, **kwargs):
+        j = cls.query(q=q, terms=terms, should_terms=should_terms, facets=facets, conn=conn, **kwargs)
+        res = raw.unpack_json_result(j)
+        return [cls(r) for r in res]
+
     def save(self, conn=None, makeid=True, created=True, updated=True):
         if makeid:
             if "id" not in self.data:
