@@ -1,5 +1,5 @@
 import uuid, json
-from esprit import raw, util
+from esprit import raw, util, tasks
 from copy import deepcopy
 
 class StoreException(Exception):
@@ -223,6 +223,19 @@ class DomainObject(DAO):
     @classmethod
     def iterall(cls, page_size=1000, limit=None):
         return cls.iterate(deepcopy(all_query), page_size, limit)
+
+    @classmethod
+    def scroll(cls, q=None, page_size=1000, limit=None, keepalive="1m", conn=None):
+        if conn is None:
+            conn = cls.__conn__
+
+        if q is None:
+            q = {"query" : {"match_all" : {}}}
+
+        gen = tasks.scroll(conn, cls.__type__, q, page_size=page_size, limit=limit, keepalive=keepalive)
+
+        for o in gen:
+            yield cls(o)
     
 ########################################################################
 ## Some useful ES queries

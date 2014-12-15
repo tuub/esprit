@@ -131,6 +131,9 @@ def unpack_json_result(j):
     objects = [i.get("_source") if "_source" in i else i.get("fields") for i in j.get('hits', {}).get('hits', [])]
     return objects
 
+def get_facet_terms(json_result, facet_name):
+    return json_result.get("facets", {}).get(facet_name, {}).get("terms", [])
+
 def unpack_mget(requests_response):
     j = requests_response.json()
     objects = [i.get("_source") if "_source" in i else i.get("fields") for i in j.get("docs")]
