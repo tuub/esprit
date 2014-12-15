@@ -12,13 +12,14 @@ def copy(source_conn, source_type, target_conn, target_type, limit=None, batch_s
         batch.append(r)
         if len(batch) >= batch_size:
             print "writing batch of", len(batch)
-            resp = raw.bulk(target_conn, target_type, batch)
+            raw.bulk(target_conn, target_type, batch)
             batch = []
     if len(batch) > 0:
         print "writing batch of", len(batch)
-        resp = raw.bulk(target_conn, target_type, batch)
+        raw.bulk(target_conn, target_type, batch)
 
 def scroll(conn, type, q=None, page_size=1000, limit=None, keepalive="1m"):
+    q = q.copy()
     if q is None:
         q = {"query" : {"match_all" : {}}}
     if "size" not in q:
@@ -57,6 +58,7 @@ def scroll(conn, type, q=None, page_size=1000, limit=None, keepalive="1m"):
             yield r
 
 def iterate(conn, type, q, page_size=1000, limit=None, method="POST"):
+    q = q.copy()
     q["size"] = page_size
     q["from"] = 0
     if "sort" not in q: # to ensure complete coverage on a changing index, sort by id is our best bet

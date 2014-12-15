@@ -193,6 +193,7 @@ class DomainObject(DAO):
 
     @classmethod
     def iterate(cls, q, page_size=1000, limit=None, wrap=True):
+        q = q.copy()
         q["size"] = page_size
         q["from"] = 0
         if "sort" not in q: # to ensure complete coverage on a changing index, sort by id is our best bet
