@@ -2,7 +2,6 @@
 
 import requests, json, urllib
 from models import QueryBuilder
-from copy import deepcopy
 
 class Connection(object):
     def __init__(self, host, index, port=9200):
@@ -219,4 +218,3 @@ class ESWireException(Exception):
         self.value = value
     def __str__(self):
         return repr(self.value)
-        
