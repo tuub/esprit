@@ -54,7 +54,15 @@ class DomainObject(DAO):
     @id.setter
     def id(self, val):
         self.data["id"] = val
-    
+
+    @property
+    def created_date(self):
+        return self.data.get("created_date")
+
+    @property
+    def last_updated(self):
+        return self.data.get("last_updated")
+
     @property
     def json(self):
         return json.dumps(self.data)
