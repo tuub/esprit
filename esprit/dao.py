@@ -1,5 +1,5 @@
 import uuid, json
-from esprit import raw, util
+from esprit import raw, util, tasks
 from copy import deepcopy
 
 class StoreException(Exception):
@@ -54,7 +54,15 @@ class DomainObject(DAO):
     @id.setter
     def id(self, val):
         self.data["id"] = val
-    
+
+    @property
+    def created_date(self):
+        return self.data.get("created_date")
+
+    @property
+    def last_updated(self):
+        return self.data.get("last_updated")
+
     @property
     def json(self):
         return json.dumps(self.data)
@@ -193,6 +201,7 @@ class DomainObject(DAO):
 
     @classmethod
     def iterate(cls, q, page_size=1000, limit=None, wrap=True):
+        q = q.copy()
         q["size"] = page_size
         q["from"] = 0
         if "sort" not in q: # to ensure complete coverage on a changing index, sort by id is our best bet
@@ -229,6 +238,18 @@ class DomainObject(DAO):
         q["size"] = 0
         res = cls.query(q=q)
         return res.get("hits", {}).get("total")
+
+    def scroll(cls, q=None, page_size=1000, limit=None, keepalive="1m", conn=None):
+        if conn is None:
+            conn = cls.__conn__
+
+        if q is None:
+            q = {"query" : {"match_all" : {}}}
+
+        gen = tasks.scroll(conn, cls.__type__, q, page_size=page_size, limit=limit, keepalive=keepalive)
+
+        for o in gen:
+            yield cls(o)
     
 ########################################################################
 ## Some useful ES queries

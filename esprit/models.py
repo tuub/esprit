@@ -25,8 +25,6 @@ class Query(object):
         else:
             self.q["query"]["query_string"] = qs
 
-
-
     def add_should(self):
         if "bool" not in self.q["query"]:
             self.q["query"]["bool"] = {}
@@ -113,5 +111,3 @@ class QueryBuilder(object):
         for sc in cls._special_chars:
             qs = qs.replace(sc, cls._escape_char + sc)
         return qs
-    
-    
