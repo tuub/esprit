@@ -222,6 +222,13 @@ class DomainObject(DAO):
     @classmethod
     def iterall(cls, page_size=1000, limit=None):
         return cls.iterate(deepcopy(all_query), page_size, limit)
+
+    @classmethod
+    def count(cls, q):
+        q = deepcopy(q)
+        q["size"] = 0
+        res = cls.query(q=q)
+        return res.get("hits", {}).get("total")
     
 ########################################################################
 ## Some useful ES queries
