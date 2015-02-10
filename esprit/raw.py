@@ -143,7 +143,7 @@ def unpack_get(requests_response):
     j = requests_response.json()
     return j.get("_source")
 
-def put_mapping(connection, type=None, mapping=None, make_index=True):
+def put_mapping(connection, type=None, mapping=None, make_index=True, es_version="0.90.13"):
     if mapping is None:
         raise ESWireException("cannot put empty mapping")
     
@@ -152,20 +152,40 @@ def put_mapping(connection, type=None, mapping=None, make_index=True):
             create_index(connection)
         else:
             raise ESWireException("index '" + str(connection.index) + "' does not exist")
-    
-    url = elasticsearch_url(connection, type, "_mapping")
-    r = requests.put(url, json.dumps(mapping))
-    return r
 
-def has_mapping(connection, type):
-    url = elasticsearch_url(connection, type, endpoint="_mapping")
+    if es_version.startswith("0.9"):
+        url = elasticsearch_url(connection, type, "_mapping")
+        r = requests.put(url, json.dumps(mapping))
+        return r
+    elif es_version.startswith("1."):
+        url = elasticsearch_url(connection, "_mapping", type)
+        r = requests.put(url, json.dumps(mapping))
+        return r
+
+def type_exists(connection, type):
+    url = elasticsearch_url(connection, type)
     resp = requests.get(url)
     return resp.status_code == 200
 
-def get_mapping(connection, type):
-    url = elasticsearch_url(connection, type, endpoint="_mapping")
-    resp = requests.get(url)
-    return resp
+def has_mapping(connection, type, es_version="0.90.13"):
+    if es_version.startswith("0.9"):
+        url = elasticsearch_url(connection, type, endpoint="_mapping")
+        resp = requests.get(url)
+        return resp.status_code == 200
+    elif es_version.startswith("1."):
+        url = elasticsearch_url(connection, "_mapping", type)
+        resp = requests.get(url)
+        return resp.status_code == 200
+
+def get_mapping(connection, type, es_version="0.90.13"):
+    if es_version.startswith("0.9"):
+        url = elasticsearch_url(connection, type, endpoint="_mapping")
+        resp = requests.get(url)
+        return resp
+    elif es_version.startswith("1."):
+        url = elasticsearch_url(connection, "_mapping", type)
+        resp = requests.get(url)
+        return resp
 
 def index_exists(connection):
     iurl = elasticsearch_url(connection, endpoint="_mapping")
