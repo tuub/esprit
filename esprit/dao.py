@@ -239,6 +239,7 @@ class DomainObject(DAO):
         res = cls.query(q=q)
         return res.get("hits", {}).get("total")
 
+    @classmethod
     def scroll(cls, q=None, page_size=1000, limit=None, keepalive="1m", conn=None):
         if conn is None:
             conn = cls.__conn__
