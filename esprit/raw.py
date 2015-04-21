@@ -3,11 +3,21 @@
 import requests, json, urllib
 from models import QueryBuilder
 
+class ESWireException(Exception):
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+
+##################################################################
+## Connection to the index
+
 class Connection(object):
-    def __init__(self, host, index, port=9200):
+    def __init__(self, host, index, port=9200, auth=None):
         self.host = host
         self.index = index
         self.port = port
+        self.auth = auth
         
         # make sure that host starts with "http://" or equivalent
         if not self.host.startswith("http"):
@@ -17,6 +27,14 @@ class Connection(object):
         if len(self.host.split(":")) > 2:
             self.port = self.host[self.host.rindex(":") + 1:]
             self.host = self.host[:self.host.rindex(":")]
+
+def make_connection(connection, host, port, index, auth=None):
+    if connection is not None:
+        return connection
+    return Connection(host, index, port, auth)
+
+####################################################################
+## URL management
 
 def elasticsearch_url(connection, type=None, endpoint=None, params=None, omit_index=False):
     index = connection.index
@@ -66,10 +84,40 @@ def elasticsearch_url(connection, type=None, endpoint=None, params=None, omit_in
     
     return url
 
-def make_connection(connection, host, port, index):
-    if connection is not None:
-        return connection
-    return Connection(host, index, port)
+###############################################################
+## HTTP Requests
+
+def _do_get(url, conn, **kwargs):
+    if conn.auth is not None:
+        if kwargs is None:
+            kwargs = {}
+        kwargs["auth"] = conn.auth
+    return requests.get(url, **kwargs)
+
+def _do_post(url, conn, **kwargs):
+    if conn.auth is not None:
+        if kwargs is None:
+            kwargs = {}
+        kwargs["auth"] = conn.auth
+    return requests.post(url, **kwargs)
+
+def _do_put(url, conn, **kwargs):
+    if conn.auth is not None:
+        if kwargs is None:
+            kwargs = {}
+        kwargs["auth"] = conn.auth
+    return requests.put(url, **kwargs)
+
+def _do_delete(url, conn, **kwargs):
+    if conn.auth is not None:
+        if kwargs is None:
+            kwargs = {}
+        kwargs["auth"] = conn.auth
+    return requests.delete(url, **kwargs)
+
+
+###############################################################
+## Regular Search
 
 def search(connection, type=None, query=None, method="POST", url_params=None):
     url = elasticsearch_url(connection, type, "_search", url_params)
@@ -82,45 +130,9 @@ def search(connection, type=None, query=None, method="POST", url_params=None):
     resp = None
     if method == "POST":
         headers = {"content-type" : "application/json"}
-        resp = requests.post(url, data=json.dumps(query), headers=headers)
+        resp = _do_post(url, connection, data=json.dumps(query), headers=headers)
     elif method == "GET":
-        resp = requests.get(url + "?source=" + urllib.quote_plus(json.dumps(query)))
-    return resp
-
-def initialise_scroll(connection, type=None, query=None, keepalive="1m"):
-    return search(connection, type, query, url_params={"scroll" : keepalive})
-
-def scroll_next(connection, scroll_id, keepalive="1m"):
-    url = elasticsearch_url(connection, endpoint="_search/scroll", params={"scroll_id" : scroll_id, "scroll" : keepalive}, omit_index=True)
-    resp = requests.get(url)
-    return resp
-
-def scroll_timedout(requests_response):
-    return requests_response.status_code == 500
-
-def unpack_scroll(requests_response):
-    j = requests_response.json()
-    objects = unpack_json_result(j)
-    sid = j.get("_scroll_id")
-    return objects, sid
-
-def get(connection, type, id):
-    url = elasticsearch_url(connection, type, endpoint=id)
-    resp = requests.get(url)
-    return resp
-
-def mget(connection, type, ids, fields=None):
-    if ids is None:
-        raise ESWireException("mget requires one or more ids")
-    docs = {"docs" : []}
-    if fields is None:
-        docs = {"ids" : ids}
-    else:
-        fields = [] if fields is None else fields if isinstance(fields, list) else [fields]
-        for id in ids:
-            docs["docs"].append({"_id" : id, "fields" : fields})
-    url = elasticsearch_url(connection, type, endpoint="_mget")
-    resp = requests.post(url, data=json.dumps(docs))
+        resp = _do_get(url + "?source=" + urllib.quote_plus(json.dumps(query)), connection)
     return resp
 
 def unpack_result(requests_response):
@@ -134,14 +146,59 @@ def unpack_json_result(j):
 def get_facet_terms(json_result, facet_name):
     return json_result.get("facets", {}).get(facet_name, {}).get("terms", [])
 
+#################################################################
+## Scroll search
+
+def initialise_scroll(connection, type=None, query=None, keepalive="1m"):
+    return search(connection, type, query, url_params={"scroll" : keepalive})
+
+def scroll_next(connection, scroll_id, keepalive="1m"):
+    url = elasticsearch_url(connection, endpoint="_search/scroll", params={"scroll_id" : scroll_id, "scroll" : keepalive}, omit_index=True)
+    resp = _do_get(url, connection)
+    return resp
+
+def scroll_timedout(requests_response):
+    return requests_response.status_code == 500
+
+def unpack_scroll(requests_response):
+    j = requests_response.json()
+    objects = unpack_json_result(j)
+    sid = j.get("_scroll_id")
+    return objects, sid
+
+#################################################################
+## Record retrieval
+
+def get(connection, type, id):
+    url = elasticsearch_url(connection, type, endpoint=id)
+    resp = _do_get(url, connection)
+    return resp
+
+def unpack_get(requests_response):
+    j = requests_response.json()
+    return j.get("_source")
+
+def mget(connection, type, ids, fields=None):
+    if ids is None:
+        raise ESWireException("mget requires one or more ids")
+    docs = {"docs" : []}
+    if fields is None:
+        docs = {"ids" : ids}
+    else:
+        fields = [] if fields is None else fields if isinstance(fields, list) else [fields]
+        for id in ids:
+            docs["docs"].append({"_id" : id, "fields" : fields})
+    url = elasticsearch_url(connection, type, endpoint="_mget")
+    resp = _do_post(url, connection, data=json.dumps(docs))
+    return resp
+
 def unpack_mget(requests_response):
     j = requests_response.json()
     objects = [i.get("_source") if "_source" in i else i.get("fields") for i in j.get("docs")]
     return objects
 
-def unpack_get(requests_response):
-    j = requests_response.json()
-    return j.get("_source")
+####################################################################
+## Mappings
 
 def put_mapping(connection, type=None, mapping=None, make_index=True, es_version="0.90.13"):
     if mapping is None:
@@ -155,73 +212,64 @@ def put_mapping(connection, type=None, mapping=None, make_index=True, es_version
 
     if es_version.startswith("0.9"):
         url = elasticsearch_url(connection, type, "_mapping")
-        r = requests.put(url, json.dumps(mapping))
+        r = _do_put(url, connection, json.dumps(mapping))
         return r
     elif es_version.startswith("1."):
         url = elasticsearch_url(connection, "_mapping", type)
-        r = requests.put(url, json.dumps(mapping))
+        r = _do_put(url, connection, json.dumps(mapping))
         return r
-
-def type_exists(connection, type):
-    url = elasticsearch_url(connection, type)
-    resp = requests.get(url)
-    return resp.status_code == 200
 
 def has_mapping(connection, type, es_version="0.90.13"):
     if es_version.startswith("0.9"):
         url = elasticsearch_url(connection, type, endpoint="_mapping")
-        resp = requests.get(url)
+        resp = _do_get(url, connection)
         return resp.status_code == 200
     elif es_version.startswith("1."):
         url = elasticsearch_url(connection, "_mapping", type)
-        resp = requests.get(url)
+        resp = _do_get(url, connection)
         return resp.status_code == 200
 
 def get_mapping(connection, type, es_version="0.90.13"):
     if es_version.startswith("0.9"):
         url = elasticsearch_url(connection, type, endpoint="_mapping")
-        resp = requests.get(url)
+        resp = _do_get(url, connection)
         return resp
     elif es_version.startswith("1."):
         url = elasticsearch_url(connection, "_mapping", type)
-        resp = requests.get(url)
+        resp = _do_get(url, connection)
         return resp
+
+##########################################################
+## Existence checks
+
+def type_exists(connection, type):
+    url = elasticsearch_url(connection, type)
+    resp = _do_get(url, connection)
+    return resp.status_code == 200
 
 def index_exists(connection):
     iurl = elasticsearch_url(connection, endpoint="_mapping")
-    resp = requests.get(iurl)
+    resp = _do_get(iurl, connection)
     return resp.status_code == 200
+
+###########################################################
+## Index create
 
 def create_index(connection):
     iurl = elasticsearch_url(connection)
-    resp = requests.post(iurl)
+    resp = _do_post(iurl, connection)
     return resp
+
+############################################################
+## Store records
 
 def store(connection, type, record, id=None, params=None):
     url = elasticsearch_url(connection, type, endpoint=id, params=params)
     resp = None
     if id is not None:
-        resp = requests.put(url, data=json.dumps(record))
+        resp = _do_put(url, connection, data=json.dumps(record))
     else:
-        resp = requests.post(url, data=json.dumps(record))
-    return resp
-
-def delete(connection, type=None, id=None):
-    url = elasticsearch_url(connection, type, endpoint=id)
-    resp = requests.delete(url)
-    return resp
-
-def delete_by_query(connection, type, query):
-    url = elasticsearch_url(connection, type, endpoint="_query")
-    if "query" in query:
-        # we have to unpack the query, as the endpoint covers that
-        query = query["query"]
-    resp = requests.delete(url, data=json.dumps(query))
-    return resp
-
-def refresh(connection):
-    url = elasticsearch_url(connection, endpoint="_refresh")
-    resp = requests.post(url)
+        resp = _do_post(url, connection, data=json.dumps(record))
     return resp
 
 def bulk(connection, type, records, idkey='id'):
@@ -230,11 +278,29 @@ def bulk(connection, type, records, idkey='id'):
         data += json.dumps( {'index':{'_id':r[idkey]}} ) + '\n'
         data += json.dumps( r ) + '\n'
     url = elasticsearch_url(connection, type, endpoint="_bulk")
-    resp = requests.post(url, data=data)
+    resp = _do_post(url, connection, data=data)
     return resp
 
-class ESWireException(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
+############################################################
+## Delete records
+
+def delete(connection, type=None, id=None):
+    url = elasticsearch_url(connection, type, endpoint=id)
+    resp = _do_delete(url, connection)
+    return resp
+
+def delete_by_query(connection, type, query):
+    url = elasticsearch_url(connection, type, endpoint="_query")
+    if "query" in query:
+        # we have to unpack the query, as the endpoint covers that
+        query = query["query"]
+    resp = _do_delete(url, connection, data=json.dumps(query))
+    return resp
+
+##############################################################
+## Refresh
+
+def refresh(connection):
+    url = elasticsearch_url(connection, endpoint="_refresh")
+    resp = _do_post(url, connection)
+    return resp
