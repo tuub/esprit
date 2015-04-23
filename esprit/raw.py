@@ -13,11 +13,12 @@ class ESWireException(Exception):
 ## Connection to the index
 
 class Connection(object):
-    def __init__(self, host, index, port=9200, auth=None):
+    def __init__(self, host, index, port=9200, auth=None, verify_ssl=True):
         self.host = host
         self.index = index
         self.port = port
         self.auth = auth
+        self.verify_ssl = verify_ssl
         
         # make sure that host starts with "http://" or equivalent
         if not self.host.startswith("http"):
@@ -56,7 +57,7 @@ def elasticsearch_url(connection, type=None, endpoint=None, params=None, omit_in
         type = ",".join(type)
     
     # normalise the host
-    if not host.startswith("http://"):
+    if not host.startswith("http"):
         host = "http://" + host
     if host.endswith("/"):
         host = host[:-1]
@@ -92,6 +93,7 @@ def _do_get(url, conn, **kwargs):
         if kwargs is None:
             kwargs = {}
         kwargs["auth"] = conn.auth
+    kwargs["verify"] = conn.verify_ssl
     return requests.get(url, **kwargs)
 
 def _do_post(url, conn, **kwargs):
@@ -99,6 +101,7 @@ def _do_post(url, conn, **kwargs):
         if kwargs is None:
             kwargs = {}
         kwargs["auth"] = conn.auth
+    kwargs["verify"] = conn.verify_ssl
     return requests.post(url, **kwargs)
 
 def _do_put(url, conn, **kwargs):
@@ -106,6 +109,7 @@ def _do_put(url, conn, **kwargs):
         if kwargs is None:
             kwargs = {}
         kwargs["auth"] = conn.auth
+    kwargs["verify"] = conn.verify_ssl
     return requests.put(url, **kwargs)
 
 def _do_delete(url, conn, **kwargs):
@@ -113,6 +117,7 @@ def _do_delete(url, conn, **kwargs):
         if kwargs is None:
             kwargs = {}
         kwargs["auth"] = conn.auth
+    kwargs["verify"] = conn.verify_ssl
     return requests.delete(url, **kwargs)
 
 
