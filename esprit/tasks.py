@@ -19,7 +19,8 @@ def copy(source_conn, source_type, target_conn, target_type, limit=None, batch_s
         raw.bulk(target_conn, target_type, batch)
 
 def scroll(conn, type, q=None, page_size=1000, limit=None, keepalive="1m"):
-    q = q.copy()
+    if q is not None:
+    	q = q.copy()
     if q is None:
         q = {"query" : {"match_all" : {}}}
     if "size" not in q:
