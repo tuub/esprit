@@ -1,6 +1,7 @@
 import uuid, json
 from esprit import raw, util, tasks
 from copy import deepcopy
+import time
 
 class StoreException(Exception):
     def __init__(self, value):
@@ -180,19 +181,51 @@ class DomainObject(DAO):
         res = raw.unpack_json_result(j)
         return [cls(r) for r in res]
 
-    def save(self, conn=None, makeid=True, created=True, updated=True):
+    def save(self, conn=None, makeid=True, created=True, updated=True, blocking=False):
+        if blocking and not updated:
+            raise StoreException("Unable to do blocking save on record where last_updated is not set")
+
+        now = util.now()
+        if blocking:
+            # we need the new last_updated time to be later than the new one
+            if now == self.last_updated:
+                time.sleep(1)   # timestamp granularity is seconds, so just sleep for 1
+            now = util.now()    # update the new timestamp
+
+        # the main body of the save
         if makeid:
             if "id" not in self.data:
                 self.id = self.makeid()
         if created:
             if 'created_date' not in self.data:
-                self.data['created_date'] = util.now()
+                self.data['created_date'] = now
         if updated:
-            self.data['last_updated'] = util.now()
+            self.data['last_updated'] = now
         
         if conn is None:
             conn = self.__conn__
         raw.store(conn, self.__type__, self.data, self.id)
+
+        if blocking:
+            q = {
+                "query" : {
+                    "term" : {"id.exact" : self.id}
+                },
+                "fields" : ["last_updated"]
+            }
+            while True:
+                res = raw.search(conn, self.__type__, q)
+                j = raw.unpack_result(res)
+                if len(j) == 0:
+                    time.sleep(0.5)
+                    continue
+                if len(j) > 1:
+                    raise StoreException("More than one record with id {x}".format(x=self.id))
+                if j[0].get("last_updated")[0] == now:  # NOTE: only works on ES > 1.x
+                    break
+                else:
+                    time.sleep(0.5)
+                    continue
         
     def delete(self, conn=None):
         if conn is None:
