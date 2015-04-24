@@ -96,21 +96,21 @@ def _do_get(url, conn, **kwargs):
     kwargs["verify"] = conn.verify_ssl
     return requests.get(url, **kwargs)
 
-def _do_post(url, conn, **kwargs):
+def _do_post(url, conn, data, **kwargs):
     if conn.auth is not None:
         if kwargs is None:
             kwargs = {}
         kwargs["auth"] = conn.auth
     kwargs["verify"] = conn.verify_ssl
-    return requests.post(url, **kwargs)
+    return requests.post(url, data, **kwargs)
 
-def _do_put(url, conn, **kwargs):
+def _do_put(url, conn, data, **kwargs):
     if conn.auth is not None:
         if kwargs is None:
             kwargs = {}
         kwargs["auth"] = conn.auth
     kwargs["verify"] = conn.verify_ssl
-    return requests.put(url, **kwargs)
+    return requests.put(url, data, **kwargs)
 
 def _do_delete(url, conn, **kwargs):
     if conn.auth is not None:
