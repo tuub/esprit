@@ -96,7 +96,7 @@ def _do_get(url, conn, **kwargs):
     kwargs["verify"] = conn.verify_ssl
     return requests.get(url, **kwargs)
 
-def _do_post(url, conn, data, **kwargs):
+def _do_post(url, conn, data=None, **kwargs):
     if conn.auth is not None:
         if kwargs is None:
             kwargs = {}
@@ -104,7 +104,7 @@ def _do_post(url, conn, data, **kwargs):
     kwargs["verify"] = conn.verify_ssl
     return requests.post(url, data, **kwargs)
 
-def _do_put(url, conn, data, **kwargs):
+def _do_put(url, conn, data=None, **kwargs):
     if conn.auth is not None:
         if kwargs is None:
             kwargs = {}
