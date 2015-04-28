@@ -60,6 +60,10 @@ class DomainObject(DAO):
     def created_date(self):
         return self.data.get("created_date")
 
+    @created_date.setter
+    def created_date(self, val):
+        self.data["created_date"] = val
+
     @property
     def last_updated(self):
         return self.data.get("last_updated")
