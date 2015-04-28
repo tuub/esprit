@@ -233,6 +233,12 @@ class DomainObject(DAO):
         raw.delete(conn, self.__type__, self.id)
 
     @classmethod
+    def delete_by_query(cls, query, conn=None, es_version="0.90.13"):
+        if conn is None:
+            conn = cls.__conn__
+        raw.delete_by_query(conn, cls.__type__, query, es_version=es_version)
+
+    @classmethod
     def iterate(cls, q, page_size=1000, limit=None, wrap=True):
         q = q.copy()
         q["size"] = page_size

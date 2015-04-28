@@ -294,9 +294,9 @@ def delete(connection, type=None, id=None):
     resp = _do_delete(url, connection)
     return resp
 
-def delete_by_query(connection, type, query):
+def delete_by_query(connection, type, query, es_version="0.90.13"):
     url = elasticsearch_url(connection, type, endpoint="_query")
-    if "query" in query:
+    if "query" in query and es_version.startswith("0.9"):
         # we have to unpack the query, as the endpoint covers that
         query = query["query"]
     resp = _do_delete(url, connection, data=json.dumps(query))
