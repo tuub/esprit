@@ -41,6 +41,11 @@ class Query(object):
         if "match_all" in self.q["query"]:
             del self.q["query"]["match_all"]
 
+    def include_source(self, values):
+        if "_source" not in self.q:
+            self.q["_source"] = {}
+        self.q["_source"]["include"] = values
+
     def as_dict(self):
         return self.q
 
