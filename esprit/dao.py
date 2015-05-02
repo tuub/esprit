@@ -283,17 +283,24 @@ class DomainObject(DAO):
         return res.get("hits", {}).get("total")
 
     @classmethod
-    def scroll(cls, q=None, page_size=1000, limit=None, keepalive="1m", conn=None):
+    def scroll(cls, q=None, page_size=1000, limit=None, keepalive="1m", conn=None, raise_on_scroll_error=True):
         if conn is None:
             conn = cls.__conn__
 
         if q is None:
             q = {"query" : {"match_all" : {}}}
 
+
         gen = tasks.scroll(conn, cls.__type__, q, page_size=page_size, limit=limit, keepalive=keepalive)
 
-        for o in gen:
-            yield cls(o)
+        try:
+            for o in gen:
+                yield cls(o)
+        except tasks.ScrollException as e:
+            if raise_on_scroll_error:
+                raise e
+            else:
+                return
     
 ########################################################################
 ## Some useful ES queries

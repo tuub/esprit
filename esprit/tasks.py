@@ -20,7 +20,7 @@ def copy(source_conn, source_type, target_conn, target_type, limit=None, batch_s
 
 def scroll(conn, type, q=None, page_size=1000, limit=None, keepalive="1m"):
     if q is not None:
-    	q = q.copy()
+        q = q.copy()
     if q is None:
         q = {"query" : {"match_all" : {}}}
     if "size" not in q:
@@ -29,6 +29,11 @@ def scroll(conn, type, q=None, page_size=1000, limit=None, keepalive="1m"):
         q["sort"] = [{"id" : {"order" : "asc"}}]
 
     resp = raw.initialise_scroll(conn, type, q, keepalive)
+    if resp.status_code != 200:
+        # something went wrong initialising the scroll
+        raise ScrollException("Unable to initialise scroll - could be your mappings are broken")
+
+    # otherwise, carry on
     results, scroll_id = raw.unpack_scroll(resp)
 
     counter = 0
