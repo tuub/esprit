@@ -100,7 +100,8 @@ class DomainObject(DAO):
                     return cls(j)
                 else:
                     return j
-        except:
+        except Exception as e:
+            print e.message
             return None
     
     @classmethod
