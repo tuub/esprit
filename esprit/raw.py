@@ -88,6 +88,14 @@ def elasticsearch_url(connection, type=None, endpoint=None, params=None, omit_in
 ###############################################################
 ## HTTP Requests
 
+def _do_head(url, conn, **kwargs):
+    if conn.auth is not None:
+        if kwargs is None:
+            kwargs = {}
+        kwargs["auth"] = conn.auth
+    kwargs["verify"] = conn.verify_ssl
+    return requests.head(url, **kwargs)
+
 def _do_get(url, conn, **kwargs):
     if conn.auth is not None:
         if kwargs is None:
@@ -247,9 +255,12 @@ def get_mapping(connection, type, es_version="0.90.13"):
 ##########################################################
 ## Existence checks
 
-def type_exists(connection, type):
+def type_exists(connection, type, es_version="0.90.13"):
     url = elasticsearch_url(connection, type)
-    resp = _do_get(url, connection)
+    if es_version.startswith("0"):
+        resp = _do_get(url, connection)
+    else:
+        resp = _do_head(url, connection)
     return resp.status_code == 200
 
 def index_exists(connection):
@@ -260,9 +271,12 @@ def index_exists(connection):
 ###########################################################
 ## Index create
 
-def create_index(connection):
+def create_index(connection, mapping=None):
     iurl = elasticsearch_url(connection)
-    resp = _do_post(iurl, connection)
+    if mapping is None:
+        resp = _do_post(iurl, connection)
+    else:
+        resp = _do_post(iurl, connection, data=json.dumps(mapping))
     return resp
 
 ############################################################
