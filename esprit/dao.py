@@ -98,6 +98,10 @@ class DomainObject(DAO):
     def last_updated(self):
         return self.data.get("last_updated")
 
+    @last_updated.setter
+    def last_updated(self, val):
+        self.data["last_updated"] = val
+
     @property
     def json(self):
         return json.dumps(self.data)
