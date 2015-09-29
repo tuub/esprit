@@ -278,9 +278,19 @@ class DomainObject(DAO):
     def delete(self, conn=None, type=None):
         if conn is None:
             conn = self.__conn__
-        type = self.get_write_type(type)
 
-        raw.delete(conn, type, self.id)
+        # the record may be in any one of the read types, so we need to check them all
+        types = self.get_read_types(type)
+
+        # in the simple case of one type, just get on and issue the delete
+        if len(types) == 1:
+            raw.delete(conn, types[0], self.id)
+
+        # otherwise, check all the types until we find the object, then issue the delete there
+        for t in types:
+            o = raw.get(conn, t, self.id)
+            if o is not None:
+                raw.delete(conn, t, self.id)
 
     @classmethod
     def delete_by_query(cls, query, conn=None, es_version="0.90.13", type=None):
