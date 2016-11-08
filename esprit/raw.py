@@ -231,6 +231,10 @@ def put_mapping(connection, type=None, mapping=None, make_index=True, es_version
         url = elasticsearch_url(connection, "_mapping", type)
         r = _do_put(url, connection, json.dumps(mapping))
         return r
+    elif es_version.startswith("2."):
+        url = elasticsearch_url(connection, "_mapping", type)
+        r = _do_put(url, connection, json.dumps(mapping))
+        return r
 
 def has_mapping(connection, type, es_version="0.90.13"):
     if es_version.startswith("0.9"):
@@ -241,6 +245,10 @@ def has_mapping(connection, type, es_version="0.90.13"):
         url = elasticsearch_url(connection, "_mapping", type)
         resp = _do_get(url, connection)
         return resp.status_code == 200
+    elif es_version.startswith("2."):
+        url = elasticsearch_url(connection, "_mapping", type)
+        resp = _do_get(url, connection)
+        return resp.status_code == 200
 
 def get_mapping(connection, type, es_version="0.90.13"):
     if es_version.startswith("0.9"):
@@ -248,6 +256,10 @@ def get_mapping(connection, type, es_version="0.90.13"):
         resp = _do_get(url, connection)
         return resp
     elif es_version.startswith("1."):
+        url = elasticsearch_url(connection, "_mapping", type)
+        resp = _do_get(url, connection)
+        return resp
+    elif es_version.startswith("2."):
         url = elasticsearch_url(connection, "_mapping", type)
         resp = _do_get(url, connection)
         return resp
