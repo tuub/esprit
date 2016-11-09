@@ -129,6 +129,37 @@ def _do_delete(url, conn, **kwargs):
     return requests.delete(url, **kwargs)
 
 
+# 2016-11-09 TD : A new search interface returning different output formats, e.g. csv
+#               : Needs plugin org.codelibs/elasticsearch-dataformat/[version tag] ,
+#               : (see https://github.com/codelibs/elasticsearch-dataformat for any details!)
+
+###############################################################
+## Dataformat Search
+
+def data(connection, type=None, query=None, fmt="csv", method="POST", url_params=None):
+    if url_params is None:
+        url_params = { "format" : fmt }
+    elif not isinstance(url_params, dict):
+        url_params = { "format" : fmt }
+    else:
+        url_params["format"] = fmt
+
+    url = elasticsearch_url(connection, type, "_data", url_params)
+    
+    if query is None:
+        query = QueryBuilder.match_all()
+    if not isinstance(query, dict):
+        query = QueryBuilder.query_string(query)
+    
+    resp = None
+    if method == "POST":
+        headers = {"content-type" : "application/json"}
+        resp = _do_post(url, connection, dat=json.dumps(query), headers=headers)
+    elif method == "GET":
+        resp = _do_get(url + "&source=" + urllib.quote_plus(json.dumps(query)), connection)
+    return resp
+
+
 ###############################################################
 ## Regular Search
 

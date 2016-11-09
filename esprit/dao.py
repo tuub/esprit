@@ -142,6 +142,95 @@ class DomainObject(DAO):
             print e.message
             return None
     
+    # 2016-11-09 TD : introduction of different output formats, e.g. csv
+    #                 See http://github.com/codelibs/elasticsearch-dataformats for details!
+    @classmethod
+    def dataformat_query(cls, q='', terms=None, should_terms=None, facets=None, conn=None, types=None, url_params=None, **kwargs):
+        '''Perform a query on backend (via dataformat request).
+
+        :param q: maps to query_string parameter if string, or query dict if dict.
+        :param terms: dictionary of terms to filter on. values should be lists. 
+        :param facets: dict of facets to return from the query.
+        :param kwargs: any keyword args as per
+            http://www.elasticsearch.org/guide/reference/api/search/uri-request.html
+        '''
+        if conn is None:
+            conn = cls.__conn__
+
+        types = cls.get_read_types(types)
+        
+        if isinstance(q,dict):
+            query = q
+            if 'bool' not in query['query']:
+                boolean = {'bool':{'must': [] }}
+                boolean['bool']['must'].append( query['query'] )
+                query['query'] = boolean
+            if 'must' not in query['query']['bool']:
+                query['query']['bool']['must'] = []
+        elif q:
+            query = {
+                'query': {
+                    'bool': {
+                        'must': [
+                            {'query_string': { 'query': q }}
+                        ]
+                    }
+                }
+            }
+        else:
+            query = {
+                'query': {
+                    'bool': {
+                        'must': [
+                            {'match_all': {}}
+                        ]
+                    }
+                }
+            }
+
+        if facets:
+            if 'facets' not in query:
+                query['facets'] = {}
+            for k, v in facets.items():
+                query['facets'][k] = {"terms":v}
+
+        if terms:
+            boolean = {'must': [] }
+            for term in terms:
+                if not isinstance(terms[term],list): terms[term] = [terms[term]]
+                for val in terms[term]:
+                    obj = {'term': {}}
+                    obj['term'][ term ] = val
+                    boolean['must'].append(obj)
+            if q and not isinstance(q,dict):
+                boolean['must'].append( {'query_string': { 'query': q } } )
+            elif q and 'query' in q:
+                boolean['must'].append( query['query'] )
+            query['query'] = {'bool': boolean}
+
+        # 2016-11-09 TD : set for dataformat output
+        fmt = "csv"
+
+        for k,v in kwargs.items():
+            # 2016-11-09 TD : enable dataformat output via kwargs
+            if k == '_dataformat':
+                fmt = v
+            elif k == '_from':
+            #if k == '_from':
+                query['from'] = v
+            else:
+                query[k] = v
+
+        if should_terms is not None and len(should_terms) > 0:
+            for s in should_terms:
+                if not isinstance(should_terms[s],list): should_terms[s] = [should_terms[s]]
+                query["query"]["bool"]["must"].append({"terms" : {s : should_terms[s]}})
+
+        # 2016-11-09 TD : call dataformat output
+        #                 Note that !!no!! json() is returned
+        return raw.data(conn, types, query, fmt=fmt, url_params=url_params)
+
+
     @classmethod
     def query(cls, q='', terms=None, should_terms=None, facets=None, conn=None, types=None, **kwargs):
         '''Perform a query on backend.
