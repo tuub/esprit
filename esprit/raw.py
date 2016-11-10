@@ -154,7 +154,7 @@ def data(connection, type=None, query=None, fmt="csv", method="POST", url_params
     resp = None
     if method == "POST":
         headers = {"content-type" : "application/json"}
-        resp = _do_post(url, connection, dat=json.dumps(query), headers=headers)
+        resp = _do_post(url, connection, data=json.dumps(query), headers=headers)
     elif method == "GET":
         resp = _do_get(url + "&source=" + urllib.quote_plus(json.dumps(query)), connection)
     return resp
