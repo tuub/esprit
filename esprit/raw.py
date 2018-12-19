@@ -193,10 +193,14 @@ def get_facet_terms(json_result, facet_name):
 #################################################################
 ## Scroll search
 
-def initialise_scroll(connection, type=None, query=None, keepalive="1m"):
+# 2018-12-19 TD : raise default keepalive value to '10m'
+# def initialise_scroll(connection, type=None, query=None, keepalive="1m"):
+def initialise_scroll(connection, type=None, query=None, keepalive="10m"):
     return search(connection, type, query, url_params={"scroll" : keepalive})
 
-def scroll_next(connection, scroll_id, keepalive="1m"):
+# 2018-12-19 TD : see simply previous comment
+# def scroll_next(connection, scroll_id, keepalive="1m"):
+def scroll_next(connection, scroll_id, keepalive="10m"):
     url = elasticsearch_url(connection, endpoint="_search/scroll", params={"scroll_id" : scroll_id, "scroll" : keepalive}, omit_index=True)
     resp = _do_get(url, connection)
     return resp

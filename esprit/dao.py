@@ -430,7 +430,11 @@ class DomainObject(DAO):
         return res.get("hits", {}).get("total")
 
     @classmethod
-    def scroll(cls, q=None, page_size=1000, limit=None, keepalive="1m", conn=None, raise_on_scroll_error=True, types=None):
+    def scroll(cls, q=None, page_size=1000, limit=None, keepalive="10m", conn=None, raise_on_scroll_error=True, types=None):
+    # 2018-12-19 TD : raise keepalive value to '10m'
+    #
+    # def scroll(cls, q=None, page_size=1000, limit=None, keepalive="1m", conn=None, raise_on_scroll_error=True, types=None):
+    #
         if conn is None:
             conn = cls.__conn__
         types = cls.get_read_types(types)

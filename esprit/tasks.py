@@ -18,7 +18,9 @@ def copy(source_conn, source_type, target_conn, target_type, limit=None, batch_s
         print "writing batch of", len(batch)
         raw.bulk(target_conn, target_type, batch)
 
-def scroll(conn, type, q=None, page_size=1000, limit=None, keepalive="1m"):
+# 2018-12-19 TD : raise keepalive value to '10m'
+# def scroll(conn, type, q=None, page_size=1000, limit=None, keepalive="1m"):
+def scroll(conn, type, q=None, page_size=1000, limit=None, keepalive="10m"):
     if q is not None:
         q = q.copy()
     if q is None:
