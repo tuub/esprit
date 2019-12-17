@@ -11,11 +11,11 @@ def copy(source_conn, source_type, target_conn, target_type, limit=None, batch_s
     for r in iterate(source_conn, source_type, q, page_size=batch_size, limit=limit, method=method):
         batch.append(r)
         if len(batch) >= batch_size:
-            print "writing batch of", len(batch)
+            print("writing batch of", len(batch))
             raw.bulk(target_conn, target_type, batch)
             batch = []
     if len(batch) > 0:
-        print "writing batch of", len(batch)
+        print("writing batch of", len(batch))
         raw.bulk(target_conn, target_type, batch)
 
 # 2018-12-19 TD : raise keepalive value to '10m'
