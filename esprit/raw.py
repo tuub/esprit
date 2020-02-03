@@ -1,7 +1,7 @@
 # The Raw ElasticSearch functions, no frills, just wrappers around the HTTP calls
 
-import requests, json, urllib
-from models import QueryBuilder
+import requests, json, urllib.request, urllib.parse, urllib.error
+from .models import QueryBuilder
 
 class ESWireException(Exception):
     def __init__(self, value):
@@ -78,7 +78,7 @@ def elasticsearch_url(connection, type=None, endpoint=None, params=None, omit_in
     # FIXME: NOT URL SAFE - do this properly
     if params is not None:
         args = []
-        for k, v in params.iteritems():
+        for k, v in params.items():
             args.append(k + "=" + v)
         q = "&".join(args)
         url += "?" + q
@@ -156,7 +156,7 @@ def data(connection, type=None, query=None, fmt="csv", method="POST", url_params
         headers = {"content-type" : "application/json"}
         resp = _do_post(url, connection, data=json.dumps(query), headers=headers)
     elif method == "GET":
-        resp = _do_get(url + "&source=" + urllib.quote_plus(json.dumps(query)), connection)
+        resp = _do_get(url + "&source=" + urllib.parse.quote_plus(json.dumps(query)), connection)
     return resp
 
 
@@ -176,7 +176,7 @@ def search(connection, type=None, query=None, method="POST", url_params=None):
         headers = {"content-type" : "application/json"}
         resp = _do_post(url, connection, data=json.dumps(query), headers=headers)
     elif method == "GET":
-        resp = _do_get(url + "?source=" + urllib.quote_plus(json.dumps(query)), connection)
+        resp = _do_get(url + "?source=" + urllib.parse.quote_plus(json.dumps(query)), connection)
     return resp
 
 def unpack_result(requests_response):

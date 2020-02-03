@@ -17,9 +17,9 @@ class DAO(object):
     
     def actions(self, conn, action_queue):
         for action in action_queue:
-            if action.keys()[0] == "remove":
+            if list(action.keys())[0] == "remove":
                 self._action_remove(conn, action)
-            elif action.keys()[0] == "store":
+            elif list(action.keys())[0] == "store":
                 self._action_store(conn, action)
     
     def _action_remove(self, conn, remove_action):
@@ -139,7 +139,7 @@ class DomainObject(DAO):
                         return j
             return None
         except Exception as e:
-            print(e.message)
+            print((e.message))
             return None
     
     # 2016-11-09 TD : introduction of different output formats, e.g. csv
@@ -191,7 +191,7 @@ class DomainObject(DAO):
         if facets:
             if 'facets' not in query:
                 query['facets'] = {}
-            for k, v in facets.items():
+            for k, v in list(facets.items()):
                 query['facets'][k] = {"terms":v}
 
         if terms:
@@ -211,7 +211,7 @@ class DomainObject(DAO):
         # 2016-11-09 TD : set for dataformat output
         fmt = "csv"
 
-        for k,v in kwargs.items():
+        for k,v in list(kwargs.items()):
             # 2016-11-09 TD : enable dataformat output via kwargs
             if k == '_dataformat':
                 fmt = v
@@ -278,7 +278,7 @@ class DomainObject(DAO):
         if facets:
             if 'facets' not in query:
                 query['facets'] = {}
-            for k, v in facets.items():
+            for k, v in list(facets.items()):
                 query['facets'][k] = {"terms":v}
 
         if terms:
@@ -295,7 +295,7 @@ class DomainObject(DAO):
                 boolean['must'].append( query['query'] )
             query['query'] = {'bool': boolean}
 
-        for k,v in kwargs.items():
+        for k,v in list(kwargs.items()):
             if k == '_from':
                 query['from'] = v
             else:
