@@ -139,7 +139,7 @@ class DomainObject(DAO):
                         return j
             return None
         except Exception as e:
-            print((e.message))
+            print((e))
             return None
     
     # 2016-11-09 TD : introduction of different output formats, e.g. csv
